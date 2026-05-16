@@ -1,0 +1,67 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "vs2022-debug",
+      "displayName": "Visual Studio 2022 (Debug)",
+      "description": "For Open Folder in VS 2022. Do NOT set CMAKE_TOOLCHAIN_FILE here — VS injects vcpkg from vcpkg.json when 'Use Vcpkg' is enabled.",
+      "generator": "Visual Studio 17 2022",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "binaryDir": "${sourceDir}/build-vs",
+      "cacheVariables": {
+        "CMAKE_CXX_STANDARD": "17"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": ["Windows"],
+          "intelliSenseMode": "windows-msvc-x64"
+        }
+      }
+    },
+    {
+      "name": "vs2022-release",
+      "displayName": "Visual Studio 2022 (Release)",
+      "inherits": "vs2022-debug"
+    },
+    {
+      "name": "ninja-vcpkg-debug",
+      "displayName": "Ninja + vcpkg (Debug)",
+      "description": "Command line / CI. Run from 'x64 Native Tools Command Prompt for VS 2022' or after vcvars64.bat.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_STANDARD": "17",
+        "VCPKG_TARGET_TRIPLET": "x64-windows"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "vs2022-debug",
+      "displayName": "Build Debug (VS 2022)",
+      "configurePreset": "vs2022-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "vs2022-release",
+      "displayName": "Build Release (VS 2022)",
+      "configurePreset": "vs2022-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "ninja-vcpkg-debug",
+      "displayName": "Build Debug (Ninja)",
+      "configurePreset": "ninja-vcpkg-debug"
+    }
+  ]
+}

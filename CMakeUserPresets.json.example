@@ -1,0 +1,12 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "ninja-vcpkg-debug",
+      "toolchainFile": "C:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      "environment": {
+        "VCPKG_ROOT": "C:/dev/vcpkg"
+      }
+    }
+  ]
+}

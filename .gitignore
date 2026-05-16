@@ -1,0 +1,10 @@
+build/
+build-vs/
+install_dir/
+vcpkg_installed/
+.vs/
+.vscode/
+*.user
+CMakeUserPresets.json
+out/
+build_log.txt
