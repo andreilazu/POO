@@ -16,7 +16,11 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build g++ cmake libxi-dev
+          sudo apt-get install -y \
+            ninja-build g++ cmake \
+            libxi-dev libx11-dev libxrandr-dev libxcursor-dev libxinerama-dev \
+            libgl1-mesa-dev libglu1-mesa-dev libudev-dev libdbus-1-dev \
+            libfreetype-dev libharfbuzz-dev
 
       - name: Setup vcpkg
         run: |
