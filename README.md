@@ -2,14 +2,6 @@
 
 Joc 2D single-player inspirat de managementul unui roi de creaturi (Pikmin-like), implementat în **C++17** cu **SFML 3**. Playerul controlează un lider, iar creaturile pot fi comandate să adune resurse, să lupte cu inamici și să exploreze o lume generată procedural.
 
-### Folosiți template-ul corespunzător grupei voastre!
-
-| Laborant | Link template |
-|----------|----------------------------------------------|
-| Dragoș B | https://github.com/Ionnier/oop-template |
-| Tiberiu M | https://github.com/MaximTiberiu/oop-template |
-| Marius MC | https://github.com/mcmarius/oop-template |
-
 ## Tema 0
 
 - [x] **Nume proiect:** Pikmin Swarm
