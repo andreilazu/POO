@@ -3,7 +3,7 @@
 
 #include <string>
 
-int main(int argc, char* argv[]) {
+int main(int argc, const char* argv[]) {
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         if (arg == "--demo") {

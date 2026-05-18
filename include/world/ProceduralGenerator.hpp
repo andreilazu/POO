@@ -20,7 +20,7 @@ public:
     void ensureLoadedAround(sf::Vector2f worldPosition, int radiusChunks = 2);
     void setDifficulty(float difficulty);
     void updateEnemies(sf::Vector2f playerPosition, sf::Time deltaTime);
-    void processEnemyAttacks(class Player& player, class SwarmManager& swarm, sf::Time deltaTime);
+    void processEnemyAttacks(class Player& player, const class SwarmManager& swarm, sf::Time deltaTime);
     int processCombatWithSwarm(class SwarmManager& swarm);
     Biome biomeAt(sf::Vector2f worldPosition) const;
     bool blocksCircle(sf::Vector2f center, float radius) const;

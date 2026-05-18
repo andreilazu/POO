@@ -151,7 +151,7 @@ void ProceduralGenerator::updateEnemies(sf::Vector2f playerPosition, sf::Time de
     }
 }
 
-void ProceduralGenerator::processEnemyAttacks(Player& player, SwarmManager& swarm,
+void ProceduralGenerator::processEnemyAttacks(Player& player, const SwarmManager& swarm,
                                               sf::Time deltaTime) {
     for (auto& entry : chunks_) {
         for (Enemy& enemy : entry.second.enemies()) {

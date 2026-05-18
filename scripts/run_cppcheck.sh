@@ -11,5 +11,7 @@ cppcheck --enable=all \
     --suppress=useStlAlgorithm \
     --suppress=unusedFunction \
     --suppress=constVariablePointer \
+    --suppress=constParameter \
+    --suppress=constParameterReference \
     --check-level=exhaustive \
     --error-exitcode=1

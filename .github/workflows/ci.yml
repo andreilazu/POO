@@ -140,24 +140,7 @@ jobs:
         run: bash ./scripts/cmake.sh build -b ${{ env.BUILD_DIR }} -c ${{ env.BUILD_TYPE }}
 
       - name: Test
-        run: |
-          EXE="$(find "${{ env.BUILD_DIR }}" \( -name '${{ env.EXECUTABLE_NAME }}.exe' -o -name '${{ env.EXECUTABLE_NAME }}' \) ! -path '*/CMakeFiles/*' -type f | head -1)"
-          if [[ -z "${EXE}" ]]; then
-            echo "Executable not found under ${{ env.BUILD_DIR }}"
-            exit 1
-          fi
-          EXE_DIR="$(cd "$(dirname "${EXE}")" && pwd)"
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            for VCPKG_BIN in \
-              "${VCPKG_ROOT}/installed/x64-windows/bin" \
-              "${VCPKG_ROOT}/installed/x64-mingw-dynamic/bin"; do
-              if [[ -d "${VCPKG_BIN}" ]]; then
-                cp -n "${VCPKG_BIN}"/*.dll "${EXE_DIR}/" 2>/dev/null || true
-              fi
-            done
-          fi
-          cd "${EXE_DIR}"
-          "./$(basename "${EXE}")" --demo
+        run: bash ./scripts/run_demo_test.sh "${{ env.BUILD_DIR }}" "${{ env.EXECUTABLE_NAME }}"
 
       - name: Install
         run: bash ./scripts/cmake.sh install -b ${{ env.BUILD_DIR }} -c ${{ env.BUILD_TYPE }} -i artifacts
