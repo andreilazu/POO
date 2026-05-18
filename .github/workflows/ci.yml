@@ -1,93 +1,187 @@
-name: Continuous Integration
+name: C++ CI pentru POO Proiect
 
 on:
   push:
-    branches: [main, master]
+    branches: ['**']
+    tags: ['**']
   pull_request:
-    branches: [main, master]
+    branches: ['main', 'master']
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: Build type
+        required: false
+        default: 'Debug'
+        type: choice
+        options:
+          - Debug
+          - Release
+          - RelWithDebInfo
+          - MinSizeRel
 
 env:
-  # Poți seta variabile globale aici, ex: versiunea de Clang
-  CLANG_VER: '18'
-  # Directorul de build standard
-  BUILD_DIR: 'build'
-  # Directorul cu dependințe externe
-  EXT_DIR: 'external'
+  # --- VARIABILE DE CONFIGURAT PENTRU PROIECTUL TĂU ---
+  BUILD_TYPE: ${{ inputs.build_type || 'Debug' }}
+  EXECUTABLE_NAME: "pikmin_swarm" # <--- MODIFICAT: Numele executabilului tău
+  BIN_DIR: "bin"
+  BUILD_DIR: "build"
+  EXT_DIR: "ext"
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  #================================================
-  # JOB 1: Construiește proiectul
-  #================================================
-  build:
-    runs-on: ubuntu-latest
+  # NOTĂ: Acest job este dezactivat deoarece nu există .github/actions/cppcheck
+  # Dacă adaugi acea acțiune, poți scoate comentariul de mai jos.
+  cppcheck:
+    name: "Cppcheck"
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    env:
+      CPPCHECK_VER: "2.14.2"
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          submodules: 'recursive' # Important dacă folosești submodule
 
-      - name: Install system packages
-        uses: ./.github/actions/install-packages
+      - name: Run cppcheck
+        uses: ./.github/actions/cppcheck
 
-      - name: Setup vcpkg
+  clang-tidy:
+    name: "Clang-Tidy"
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    env:
+      CLANG_VER: 18
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Run clang-tidy
+        uses: ./.github/actions/clang-tidy
+
+      - name: Run clang-tidy
+        uses: ./.github/actions/clang-tidy
+
+  build:
+    name: Build pe ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    permissions:
+      contents: write
+
+    env:
+      CC: ${{ matrix.c }}
+      CXX: ${{ matrix.cxx }}
+      MINGW_VER: "13.3.0posix-11.0.1-msvcrt-r1/winlibs-x86_64-posix-seh-gcc-13.3.0-mingw-w64msvcrt-11.0.1-r1.7z"
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            c: clang-18
+            cxx: clang++-18
+            name: "MSan: Ubuntu Clang 18"
+            cmake_flags: "-DUSE_MSAN=ON"
+            cmake_generator: Ninja
+            runs_msan: true
+
+          - os: ubuntu-22.04
+            c: gcc-12
+            cxx: g++-12
+            name: "ASan: Ubuntu GCC 12"
+            cmake_flags: "-DUSE_ASAN=ON"
+            cmake_generator: Ninja
+            runs_asan: true
+            asan_name: "-asan"
+
+          - os: ubuntu-22.04
+            c: gcc-12
+            cxx: g++-12
+            name: "Valgrind: Ubuntu GCC 12"
+            cmake_generator: Ninja
+            runs_valgrind: true
+
+          - os: macos-14
+            c: clang
+            cxx: clang++
+            name: "macOS 14 Apple Clang 15"
+            cmake_flags: "-DUSE_ASAN=OFF"
+
+          - os: windows-2022
+            c: cl
+            cxx: cl
+            name: "ASan: Windows 2022 MSVC"
+            cmake_flags: "-DUSE_ASAN=ON"
+            runs_asan: true
+            
+          - os: windows-2022
+            c: gcc
+            cxx: g++
+            name: "Windows 2022 MinGW GCC 13"
+            cmake_generator: Ninja
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set timestamp and zip name
         run: |
-          git clone https://github.com/microsoft/vcpkg.git "${{ runner.temp }}/vcpkg"
-          "${{ runner.temp }}/vcpkg/bootstrap-vcpkg.sh"
+          echo "TIMESTAMP=$(date +%Y-%m-%d-%H-%M-%S)" >> ${GITHUB_ENV}
+          echo "ZIP_NAME=$(echo "${GITHUB_REPOSITORY}_${{ env.BUILD_TYPE }}_${{ matrix.os }}_${{ matrix.cxx }}${{ matrix.asan_name }}" | sed 's|/|_|')" >> ${GITHUB_ENV}
+
+      - name: Install packages
+        uses: ./.github/actions/install-packages
 
       - name: Configure CMake
         uses: ./.github/actions/configure-cmake
         with:
-          # Poți adăuga flag-uri specifice pentru build-ul de CI
-          custom_flags: '-G Ninja'
-          cache_key: 'cache-deps-build'
+          custom_flags: ${{ matrix.cmake_flags }}
+          # Poți activa asta dacă vrei ca warning-urile să oprească build-ul
+          # warnings_as_errors: 'ON'
 
-      - name: Build project
-        run: cmake --build ${{ env.BUILD_DIR }}
+      - name: Build
+        run: |
+          cmake --build ${{ env.BUILD_DIR }} --config ${{ env.BUILD_TYPE }}
 
-      - name: Upload build artifacts
-        # Acest pas "salvează" folderul de build pentru a fi folosit în alte job-uri
+      # --- ATENȚIE ---
+      # Acest pas va eșua cu "No tests were found" până când vei adăuga teste
+      # în fișierele CMakeLists.txt folosind comanda `add_test(NAME my_test COMMAND ...)`.
+      # Poți să-l comentezi temporar dacă nu ai încă teste.
+      - name: Test
+        run: |
+          cd ${{ env.BUILD_DIR }}
+          ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
+      
+      - name: Install (pregătire artefacte)
+        run: |
+          cmake --install ${{ env.BUILD_DIR }} --config ${{ env.BUILD_TYPE }} --prefix ./artifacts
+
+      - name: Move artifacts
+        run: |
+          mkdir ${{ env.ZIP_NAME }}
+          shopt -s dotglob
+          mv artifacts/${{ env.BIN_DIR }}/* ${{ env.ZIP_NAME }}
+          ls -la ${{ env.ZIP_NAME }}
+
+      - name: Process artifacts
+        uses: ./.github/actions/process-artifacts
+
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: build-output
-          path: ${{ env.BUILD_DIR }}/
-
-  #================================================
-  # JOB 2: Analiză Statică
-  #================================================
-  static-analysis:
-    runs-on: ubuntu-latest
-    # Rulează în paralel cu job-ul de "build"
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-
-      - name: Run Clang-Tidy
-        uses: ./.github/actions/clang-tidy
-
-      - name: Run Cppcheck
-        uses: ./.github/actions/cppcheck
-
-  #================================================
-  # JOB 3: Verificări la Rulare (ex: Sanitizers)
-  #================================================
-  runtime-checks:
-    runs-on: ubuntu-latest
-    # 'needs: build' asigură că acest job pornește DOAR DUPĂ ce job-ul 'build' s-a terminat cu succes
-    needs: build
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-
-      - name: Download build artifacts
-        # Preia folderul de build salvat de job-ul anterior
-        uses: actions/download-artifact@v4
-        with:
-          name: build-output
-          path: ${{ env.BUILD_DIR }}/
-
-      - name: Run runtime checks
+          name: ${{ env.ZIP_NAME }}_${{ env.TIMESTAMP }}
+          include-hidden-files: true
+          path: ${{ env.ZIP_NAME }}
+          retention-days: 30
+      
+      # NOTĂ: Verifică acțiunea .github/actions/runtime-checks
+      # Probabil trebuie să o modifici ca să ruleze "${{ env.EXECUTABLE_NAME }} --demo"
+      # în loc de a pasa un fișier de input.
+      - name: Runtime checks
         uses: ./.github/actions/runtime-checks
+
+      - name: Create release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: ./.github/actions/create-release
