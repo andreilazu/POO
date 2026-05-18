@@ -36,8 +36,21 @@ runs:
     - name: Setup vcpkg
       shell: bash
       run: |
-        if [[ ! -f "${VCPKG_ROOT}/vcpkg" && ! -f "${VCPKG_ROOT}/vcpkg.exe" ]]; then
+        if [[ -f "${VCPKG_ROOT}/vcpkg" || -f "${VCPKG_ROOT}/vcpkg.exe" ]]; then
+          echo "vcpkg already present"
+        elif [[ -d "${VCPKG_ROOT}/.git" ]]; then
+          git -C "${VCPKG_ROOT}" fetch --depth 1 origin
+          git -C "${VCPKG_ROOT}" checkout -f FETCH_HEAD
+        elif [[ -d "${VCPKG_ROOT}" ]]; then
+          # Cache restored installed/packages/downloads but not the vcpkg tool
+          CLONE_DIR="${RUNNER_TEMP}/vcpkg-src-$$"
+          git clone --depth 1 https://github.com/microsoft/vcpkg.git "${CLONE_DIR}"
+          cp -a "${CLONE_DIR}/." "${VCPKG_ROOT}/"
+          rm -rf "${CLONE_DIR}"
+        else
           git clone --depth 1 https://github.com/microsoft/vcpkg.git "${VCPKG_ROOT}"
+        fi
+        if [[ ! -f "${VCPKG_ROOT}/vcpkg" && ! -f "${VCPKG_ROOT}/vcpkg.exe" ]]; then
           if [[ "${RUNNER_OS}" == "Windows" ]]; then
             "${VCPKG_ROOT}/bootstrap-vcpkg.bat" -disableMetrics
           else

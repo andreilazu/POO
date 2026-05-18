@@ -63,4 +63,4 @@ set_property(TARGET pikmin_swarm PROPERTY VS_DEBUGGER_WORKING_DIRECTORY
 install(TARGETS pikmin_swarm DESTINATION ${DESTINATION_DIR})
 
 enable_testing()
-add_test(NAME academic_demo COMMAND pikmin_swarm --demo)
+add_test(NAME academic_demo COMMAND $<TARGET_FILE:pikmin_swarm> --demo)

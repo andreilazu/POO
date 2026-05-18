@@ -24,11 +24,12 @@
 
 Game::Game()
     : player_(EntityFactory::createPlayer({400.f, 300.f})),
-      swarm_(),
+      spawnPosition_({400.f, 300.f}),
       worldSeed_(ProceduralGenerator::seedFromTime()),
+      swarm_(),
       world_(worldSeed_),
-      state_(std::make_unique<PlayState>()),
-      spawnPosition_({400.f, 300.f}) {
+      events_(),
+      state_(std::make_unique<PlayState>()) {
     events_.subscribe("swarm.grew", [](const std::string& payload) {
         std::cout << "[Event] swarm grew: " << payload << '\n';
     });
