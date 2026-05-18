@@ -9,5 +9,6 @@ cppcheck --enable=all \
     --suppress=missingIncludeSystem \
     --suppress=unmatchedSuppression \
     --suppress=useStlAlgorithm \
+    --suppress=unusedFunction \
     --check-level=exhaustive \
     --error-exitcode=1

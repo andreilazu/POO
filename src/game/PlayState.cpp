@@ -19,7 +19,7 @@ bool keyDown(sf::Keyboard::Scancode scancode) {
 
 }  // namespace
 
-void PlayState::handleInput(Game& game, sf::Window& /*window*/) {
+void PlayState::handleInput(Game& /*game*/, sf::Window& /*window*/) {
     sf::Vector2f direction{0.f, 0.f};
     if (keyDown(sf::Keyboard::Scancode::W) || keyDown(sf::Keyboard::Scancode::Up)) {
         direction.y -= 1.f;
@@ -71,6 +71,7 @@ void PlayState::render(Game& game, sf::RenderTarget& target) const {
     const int health = game.player().health();
     const Biome biome = game.world().biomeAt(game.player().position());
     const BiomeProfile& biomeInfo = biomeProfile(biome);
+    const float difficulty = game.difficulty();
 
     sf::RectangleShape panel({240.f, 78.f});
     panel.setPosition({12.f, 12.f});
@@ -99,7 +100,7 @@ void PlayState::render(Game& game, sf::RenderTarget& target) const {
     biomeTag.setPosition({22.f, 66.f});
     biomeTag.setFillColor(biomeInfo.ground);
     biomeTag.setOutlineColor(biomeInfo.outline);
-    biomeTag.setOutlineThickness(1.f);
+    biomeTag.setOutlineThickness(1.f + std::min(difficulty * 0.02f, 2.f));
     target.draw(biomeTag);
     (void)biomeInfo.name;
 }

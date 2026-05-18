@@ -57,6 +57,7 @@ void AcademicDemo::run() {
 
     ProceduralGenerator world(ProceduralGenerator::seed());
     WorldChunk& chunk = world.chunkAt(2, 3);
+    std::cout << "Chunk activ: (" << chunk.id().x << ", " << chunk.id().y << ")\n";
     chunk.registerOccupant(*player);
     chunk.registerOccupant(*creature);
     chunk.tickOccupants();

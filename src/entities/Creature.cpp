@@ -92,11 +92,12 @@ Creature::~Creature() = default;
 void Creature::update(sf::Time /*deltaTime*/) {}
 
 void Creature::draw(sf::RenderTarget& target) const {
-    sf::CircleShape shape(visualRadius_);
-    sf::Color fill = color_;
-    fill.a = static_cast<std::uint8_t>(drawAlpha_);
+    const float radius = visualRadius();
+    sf::CircleShape shape(radius);
+    sf::Color fill = color();
+    fill.a = static_cast<std::uint8_t>(drawAlpha());
     shape.setFillColor(fill);
-    shape.setPosition({position_.x - visualRadius_, position_.y - visualRadius_});
+    shape.setPosition({position_.x - radius, position_.y - radius});
     target.draw(shape);
 }
 

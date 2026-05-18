@@ -157,9 +157,9 @@ void Game::processWorldInteractions() {
 }
 
 void Game::updateDifficulty() {
-    const sf::Vector2f delta = player_->position() - spawnPosition_;
+    const sf::Vector2f delta = player_->position() - spawnPosition();
     difficulty_ = std::sqrt(delta.x * delta.x + delta.y * delta.y) * 0.08f;
-    world_.setDifficulty(difficulty_);
+    world_.setDifficulty(difficulty());
 }
 
 int Game::swarmGrowCost() const {
@@ -201,7 +201,7 @@ void Game::checkPlayerDeath() {
 }
 
 void Game::restartRun() {
-    player_ = EntityFactory::createPlayer(spawnPosition_);
+    player_ = EntityFactory::createPlayer(spawnPosition());
     swarm_ = SwarmManager{};
     world_ = ProceduralGenerator{worldSeed_};
     difficulty_ = 0.f;

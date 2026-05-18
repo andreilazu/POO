@@ -9,7 +9,7 @@ Obstacle::Obstacle(sf::Vector2f position, float radius)
       maxHealth_(static_cast<int>(radius * 3.f)) {}
 
 std::string Obstacle::describe() const {
-    return "Obstacle(r=" + std::to_string(radius_) + ")";
+    return WorldObject::describe() + "(r=" + std::to_string(radius_) + ")";
 }
 
 float Obstacle::radius() const {
