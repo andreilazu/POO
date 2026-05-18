@@ -10,7 +10,11 @@ runs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install ninja-build
+        sudo apt-get install -y --no-install-recommends \
+          ninja-build cmake pkg-config \
+          libxi-dev libx11-dev libxrandr-dev libxcursor-dev libxinerama-dev \
+          libgl1-mesa-dev libglu1-mesa-dev libudev-dev libdbus-1-dev \
+          libfreetype-dev libharfbuzz-dev wget unzip jq
         # https://github.com/llvm/llvm-project/issues/78354
         sudo sysctl vm.mmap_rnd_bits=28
 

@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+include(cmake/Options.cmake)
+include(cmake/CompilerFlags.cmake)
+include(cmake/CopyHelper.cmake)
+
 find_package(SFML 3 REQUIRED COMPONENTS Graphics Window System)
 
 set(PIKMIN_SOURCES
@@ -46,12 +50,17 @@ target_include_directories(pikmin_swarm PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/incl
 
 target_link_libraries(pikmin_swarm PRIVATE SFML::Graphics SFML::Window SFML::System)
 
+set_compiler_flags(RUN_SANITIZERS TRUE TARGET_NAMES pikmin_swarm)
+
 if(WIN32)
     set_property(TARGET pikmin_swarm PROPERTY WIN32_EXECUTABLE FALSE)
-    # Copy SFML DLLs next to the executable (vcpkg applocal deployment).
     set(VCPKG_APPLOCAL_DEPS ON)
 endif()
 
-# Visual Studio: run from project root so the console menu finds stdin correctly.
 set_property(TARGET pikmin_swarm PROPERTY VS_DEBUGGER_WORKING_DIRECTORY
     "${CMAKE_SOURCE_DIR}")
+
+install(TARGETS pikmin_swarm DESTINATION ${DESTINATION_DIR})
+
+enable_testing()
+add_test(NAME academic_demo COMMAND pikmin_swarm --demo)

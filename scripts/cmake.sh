@@ -1,54 +1,121 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/bash
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_DIR="${ROOT}/build"
-GENERATOR=""
-CONFIG=""
-TOOLCHAIN="${VCPKG_ROOT:-}/scripts/buildsystems/vcpkg.cmake"
+DEFAULT_BUILD_DIR="build"
+DEFAULT_BUILD_TYPE="Debug"
+DEFAULT_INSTALL_DIR="install_dir"
 
-usage() {
-    echo "Usage: $0 configure|build [-g Ninja|\"Visual Studio 17 2022\"] [--config Debug|Release]"
-    exit 1
+configure() {
+    BUILD_DIR="${DEFAULT_BUILD_DIR}"
+    BUILD_TYPE="${DEFAULT_BUILD_TYPE}"
+    INSTALL_DIR="${DEFAULT_INSTALL_DIR}"
+    SOURCE_DIR="."
+    CMAKE_OPTS=()
+
+    while getopts ":b:c:e:g:i:s:" opt; do
+        case "${opt}" in
+            b) BUILD_DIR="${OPTARG}" ;;
+            c) BUILD_TYPE="${OPTARG}" ;;
+            e) IFS=" " read -r -a CMAKE_OPTS <<< "${OPTARG}" ;;
+            g) export CMAKE_GENERATOR="${OPTARG}" ;;
+            i) INSTALL_DIR="${OPTARG}" ;;
+            s) SOURCE_DIR="${OPTARG}" ;;
+            *)
+                printf "Unknown option %s; available options:\n\
+  -b (build dir)\n\
+  -c (CMake config build type)\n\
+  -e (extra CMake options)\n\
+  -g (generator)\n\
+  -i (install dir prefix)\n\
+  -s (source dir)\n" "${opt}"
+                exit 1
+                ;;
+        esac
+    done
+
+    if [[ -n "${CMAKE_GENERATOR:-}" ]]; then
+        CMAKE_OPTS+=(-G "${CMAKE_GENERATOR}")
+    fi
+
+    if [[ -n "${VCPKG_ROOT:-}" && -f "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" ]]; then
+        CMAKE_OPTS+=(-DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+    fi
+
+    cmake -B "${BUILD_DIR}" \
+        -S "${SOURCE_DIR}" \
+        -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+        -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
+        "${CMAKE_OPTS[@]}"
 }
 
-cmd="${1:-}"
-shift || true
+build() {
+    BUILD_DIR="${DEFAULT_BUILD_DIR}"
+    BUILD_TYPE="${DEFAULT_BUILD_TYPE}"
+    NPROC=6
+    CMAKE_OPTS=()
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        -g) GENERATOR="$2"; shift 2 ;;
-        --config) CONFIG="$2"; shift 2 ;;
-        *) usage ;;
-    esac
-done
+    while getopts ":b:c:e:j:" opt; do
+        case "${opt}" in
+            b) BUILD_DIR="${OPTARG}" ;;
+            c) BUILD_TYPE="${OPTARG}" ;;
+            e) IFS=" " read -r -a CMAKE_OPTS <<< "${OPTARG}" ;;
+            j) NPROC="${OPTARG}" ;;
+            *)
+                printf "Unknown option %s; available options:\n\
+  -b (build dir)\n\
+  -c (CMake config build type)\n\
+  -e (extra CMake options)\n\
+  -j (number of jobs)\n" "${opt}"
+                exit 1
+                ;;
+        esac
+    done
 
-if [[ "$GENERATOR" == *"Visual Studio"* ]]; then
-    BUILD_DIR="${ROOT}/build-vs"
-fi
+    cmake --build "${BUILD_DIR}" \
+        --config "${BUILD_TYPE}" \
+        -j "${NPROC}" \
+        "${CMAKE_OPTS[@]}"
+}
 
-case "$cmd" in
+install() {
+    BUILD_DIR="${DEFAULT_BUILD_DIR}"
+    BUILD_TYPE="${DEFAULT_BUILD_TYPE}"
+    INSTALL_DIR="${DEFAULT_INSTALL_DIR}"
+
+    while getopts ":b:c:i:" opt; do
+        case "${opt}" in
+            b) BUILD_DIR="${OPTARG}" ;;
+            c) BUILD_TYPE="${OPTARG}" ;;
+            i) INSTALL_DIR="${OPTARG}" ;;
+            *)
+                printf "Unknown option %s; available options:\n\
+  -b (build dir)\n\
+  -c (CMake config build type)\n\
+  -i (install dir prefix)\n" "${opt}"
+                exit 1
+                ;;
+        esac
+    done
+
+    cmake --install "${BUILD_DIR}" \
+        --config "${BUILD_TYPE}" \
+        --prefix "${INSTALL_DIR}"
+}
+
+case "$1" in
     configure)
-        args=(-S "$ROOT" -B "$BUILD_DIR")
-        if [[ -n "$GENERATOR" && "$GENERATOR" != *"Visual Studio"* ]]; then
-            args+=(-DCMAKE_BUILD_TYPE=Debug)
-        fi
-        [[ -n "$GENERATOR" ]] && args+=(-G "$GENERATOR")
-        if [[ "$GENERATOR" == *"Visual Studio"* ]]; then
-            args+=(-A x64)
-        fi
-        # VS generator: do not pass vcpkg toolchain (VS injects it from vcpkg.json).
-        if [[ -f "$TOOLCHAIN" && "$GENERATOR" != *"Visual Studio"* ]]; then
-            args+=(-DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN")
-        fi
-        cmake "${args[@]}"
+        shift
+        configure "$@"
         ;;
     build)
-        build_args=(--build "$BUILD_DIR")
-        [[ -n "$CONFIG" ]] && build_args+=(--config "$CONFIG")
-        cmake "${build_args[@]}"
+        shift
+        build "$@"
+        ;;
+    install)
+        shift
+        install "$@"
         ;;
     *)
-        usage
+        printf "Usage: %s configure|build|install [options]\n" "$0"
+        exit 1
         ;;
 esac
