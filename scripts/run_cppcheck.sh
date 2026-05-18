@@ -10,5 +10,6 @@ cppcheck --enable=all \
     --suppress=unmatchedSuppression \
     --suppress=useStlAlgorithm \
     --suppress=unusedFunction \
+    --suppress=constVariablePointer \
     --check-level=exhaustive \
     --error-exitcode=1

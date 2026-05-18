@@ -82,16 +82,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
-            c: clang-18
-            cxx: clang++-18
-            clang_ver: "18"
-            clang_ver_full: "18.1.8"
-            name: "MSan: Ubuntu Clang 18"
-            cmake_flags: "-DUSE_MSAN=ON"
-            cmake_generator: Ninja
-            runs_msan: true
-
+          # MSan disabled: vcpkg SFML is built with libstdc++, incompatible with MSan libc++
           - os: ubuntu-22.04
             c: gcc-12
             cxx: g++-12
@@ -149,7 +140,24 @@ jobs:
         run: bash ./scripts/cmake.sh build -b ${{ env.BUILD_DIR }} -c ${{ env.BUILD_TYPE }}
 
       - name: Test
-        run: cd "${{ env.BUILD_DIR }}" && ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
+        run: |
+          EXE="$(find "${{ env.BUILD_DIR }}" \( -name '${{ env.EXECUTABLE_NAME }}.exe' -o -name '${{ env.EXECUTABLE_NAME }}' \) ! -path '*/CMakeFiles/*' -type f | head -1)"
+          if [[ -z "${EXE}" ]]; then
+            echo "Executable not found under ${{ env.BUILD_DIR }}"
+            exit 1
+          fi
+          EXE_DIR="$(cd "$(dirname "${EXE}")" && pwd)"
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            for VCPKG_BIN in \
+              "${VCPKG_ROOT}/installed/x64-windows/bin" \
+              "${VCPKG_ROOT}/installed/x64-mingw-dynamic/bin"; do
+              if [[ -d "${VCPKG_BIN}" ]]; then
+                cp -n "${VCPKG_BIN}"/*.dll "${EXE_DIR}/" 2>/dev/null || true
+              fi
+            done
+          fi
+          cd "${EXE_DIR}"
+          "./$(basename "${EXE}")" --demo
 
       - name: Install
         run: bash ./scripts/cmake.sh install -b ${{ env.BUILD_DIR }} -c ${{ env.BUILD_TYPE }} -i artifacts

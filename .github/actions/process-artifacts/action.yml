@@ -8,8 +8,11 @@ runs:
       shell: bash
       if: runner.os == 'macOS'
       run: |
-        sed -i '' -e "s/oop/${EXECUTABLE_NAME}/" "${{ env.ZIP_NAME }}/launcher.command"
-        chmod +x "${{ env.ZIP_NAME }}/launcher.command"
+        LAUNCHER="${{ env.ZIP_NAME }}/launcher.command"
+        if [[ -f "${LAUNCHER}" ]]; then
+          sed -i '' -e "s/oop/${EXECUTABLE_NAME}/" "${LAUNCHER}"
+          chmod +x "${LAUNCHER}"
+        fi
 
     - name: Copy missing dylibs
       shell: bash
@@ -65,9 +68,21 @@ runs:
     - name: Copy stdlib (MinGW)
       shell: bash
       if: runner.os == 'Windows' && matrix.cxx == 'g++'
-      # static linking might not work with MinGW, might be easier this way
       run: |
         cp gcc/mingw64/bin/libstdc++-6.dll \
           gcc/mingw64/bin/libgcc_s_seh-1.dll \
           gcc/mingw64/bin/libwinpthread-1.dll \
           ${GITHUB_WORKSPACE}/${{ env.ZIP_NAME }}
+        VCPKG_BIN="${VCPKG_ROOT}/installed/x64-mingw-dynamic/bin"
+        if [[ -d "${VCPKG_BIN}" ]]; then
+          cp "${VCPKG_BIN}"/*.dll ${GITHUB_WORKSPACE}/${{ env.ZIP_NAME }}/ 2>/dev/null || true
+        fi
+
+    - name: Copy vcpkg runtime (MSVC)
+      shell: bash
+      if: runner.os == 'Windows' && matrix.cxx == 'cl'
+      run: |
+        VCPKG_BIN="${VCPKG_ROOT}/installed/x64-windows/bin"
+        if [[ -d "${VCPKG_BIN}" ]]; then
+          cp "${VCPKG_BIN}"/*.dll ${GITHUB_WORKSPACE}/${{ env.ZIP_NAME }}/ 2>/dev/null || true
+        fi
