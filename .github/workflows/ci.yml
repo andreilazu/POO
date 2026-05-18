@@ -20,9 +20,8 @@ on:
           - MinSizeRel
 
 env:
-  # --- VARIABILE DE CONFIGURAT PENTRU PROIECTUL TĂU ---
   BUILD_TYPE: ${{ inputs.build_type || 'Debug' }}
-  EXECUTABLE_NAME: "pikmin_swarm" # <--- MODIFICAT: Numele executabilului tău
+  EXECUTABLE_NAME: "pikmin_swarm"
   BIN_DIR: "bin"
   BUILD_DIR: "build"
   EXT_DIR: "ext"
@@ -32,17 +31,18 @@ defaults:
     shell: bash
 
 jobs:
-  # NOTĂ: Acest job este dezactivat deoarece nu există .github/actions/cppcheck
-  # Dacă adaugi acea acțiune, poți scoate comentariul de mai jos.
   cppcheck:
     name: "Cppcheck"
     runs-on: ubuntu-22.04
-    timeout-minutes: 5
+    timeout-minutes: 25
     env:
       CPPCHECK_VER: "2.14.2"
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Install packages
+        uses: ./.github/actions/install-packages
 
       - name: Run cppcheck
         uses: ./.github/actions/cppcheck
@@ -50,15 +50,15 @@ jobs:
   clang-tidy:
     name: "Clang-Tidy"
     runs-on: ubuntu-22.04
-    timeout-minutes: 5
+    timeout-minutes: 25
     env:
       CLANG_VER: 18
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Run clang-tidy
-        uses: ./.github/actions/clang-tidy
+      - name: Install packages
+        uses: ./.github/actions/install-packages
 
       - name: Run clang-tidy
         uses: ./.github/actions/clang-tidy
@@ -66,13 +66,16 @@ jobs:
   build:
     name: Build pe ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 8
+    timeout-minutes: 30
     permissions:
       contents: write
+      attestations: write
+      id-token: write
 
     env:
       CC: ${{ matrix.c }}
       CXX: ${{ matrix.cxx }}
+      VSCMD_SKIP_SENDTELEMETRY: 1
       MINGW_VER: "13.3.0posix-11.0.1-msvcrt-r1/winlibs-x86_64-posix-seh-gcc-13.3.0-mingw-w64msvcrt-11.0.1-r1.7z"
 
     strategy:
@@ -82,6 +85,8 @@ jobs:
           - os: ubuntu-22.04
             c: clang-18
             cxx: clang++-18
+            clang_ver: "18"
+            clang_ver_full: "18.1.8"
             name: "MSan: Ubuntu Clang 18"
             cmake_flags: "-DUSE_MSAN=ON"
             cmake_generator: Ninja
@@ -115,7 +120,7 @@ jobs:
             name: "ASan: Windows 2022 MSVC"
             cmake_flags: "-DUSE_ASAN=ON"
             runs_asan: true
-            
+
           - os: windows-2022
             c: gcc
             cxx: g++
@@ -138,25 +143,16 @@ jobs:
         uses: ./.github/actions/configure-cmake
         with:
           custom_flags: ${{ matrix.cmake_flags }}
-          # Poți activa asta dacă vrei ca warning-urile să oprească build-ul
-          # warnings_as_errors: 'ON'
+          warnings_as_errors: 'ON'
 
       - name: Build
-        run: |
-          cmake --build ${{ env.BUILD_DIR }} --config ${{ env.BUILD_TYPE }}
+        run: bash ./scripts/cmake.sh build -b ${{ env.BUILD_DIR }} -c ${{ env.BUILD_TYPE }}
 
-      # --- ATENȚIE ---
-      # Acest pas va eșua cu "No tests were found" până când vei adăuga teste
-      # în fișierele CMakeLists.txt folosind comanda `add_test(NAME my_test COMMAND ...)`.
-      # Poți să-l comentezi temporar dacă nu ai încă teste.
       - name: Test
-        run: |
-          cd ${{ env.BUILD_DIR }}
-          ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
-      
-      - name: Install (pregătire artefacte)
-        run: |
-          cmake --install ${{ env.BUILD_DIR }} --config ${{ env.BUILD_TYPE }} --prefix ./artifacts
+        run: cd "${{ env.BUILD_DIR }}" && ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
+
+      - name: Install
+        run: bash ./scripts/cmake.sh install -b ${{ env.BUILD_DIR }} -c ${{ env.BUILD_TYPE }} -i artifacts
 
       - name: Move artifacts
         run: |
@@ -175,10 +171,7 @@ jobs:
           include-hidden-files: true
           path: ${{ env.ZIP_NAME }}
           retention-days: 30
-      
-      # NOTĂ: Verifică acțiunea .github/actions/runtime-checks
-      # Probabil trebuie să o modifici ca să ruleze "${{ env.EXECUTABLE_NAME }} --demo"
-      # în loc de a pasa un fișier de input.
+
       - name: Runtime checks
         uses: ./.github/actions/runtime-checks
 

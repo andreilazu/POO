@@ -16,19 +16,11 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Setup vcpkg
+    - name: Set vcpkg path
       shell: bash
       run: |
         if [[ -z "${VCPKG_ROOT:-}" ]]; then
           echo "VCPKG_ROOT=${RUNNER_TEMP}/vcpkg" >> "${GITHUB_ENV}"
-        fi
-        if [[ ! -f "${VCPKG_ROOT}/vcpkg" && ! -f "${VCPKG_ROOT}/vcpkg.exe" ]]; then
-          git clone --depth 1 https://github.com/microsoft/vcpkg.git "${VCPKG_ROOT}"
-          if [[ "${RUNNER_OS}" == "Windows" ]]; then
-            "${VCPKG_ROOT}/bootstrap-vcpkg.bat" -disableMetrics
-          else
-            "${VCPKG_ROOT}/bootstrap-vcpkg.sh" -disableMetrics
-          fi
         fi
 
     - name: Cache vcpkg
@@ -40,6 +32,18 @@ runs:
           ${{ env.VCPKG_ROOT }}/downloads
         key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json') }}
         restore-keys: vcpkg-${{ runner.os }}-
+
+    - name: Setup vcpkg
+      shell: bash
+      run: |
+        if [[ ! -f "${VCPKG_ROOT}/vcpkg" && ! -f "${VCPKG_ROOT}/vcpkg.exe" ]]; then
+          git clone --depth 1 https://github.com/microsoft/vcpkg.git "${VCPKG_ROOT}"
+          if [[ "${RUNNER_OS}" == "Windows" ]]; then
+            "${VCPKG_ROOT}/bootstrap-vcpkg.bat" -disableMetrics
+          else
+            "${VCPKG_ROOT}/bootstrap-vcpkg.sh" -disableMetrics
+          fi
+        fi
 
     # Uncomment when using external dependencies, so they will be cached
     # - name: Cache deps

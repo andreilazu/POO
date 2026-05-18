@@ -19,20 +19,22 @@ runs:
         sudo sysctl vm.mmap_rnd_bits=28
 
     # Also see https://github.com/actions/runner-images/discussions/9446#discussioncomment-8668538
-    - name: Install Clang ${{ matrix.clang_ver }}
+    - name: Install Clang ${{ matrix.clang_ver || '18' }}
       shell: bash
       if: runner.os == 'Linux' && matrix.runs_msan == true
       run: |
+        CLANG_VER="${{ matrix.clang_ver || '18' }}"
         wget https://apt.llvm.org/llvm.sh
         chmod +x ./llvm.sh
-        sudo ./llvm.sh ${{ matrix.clang_ver }}
+        sudo ./llvm.sh "${CLANG_VER}"
 
-    - name: Install libc++ (Linux Clang ${{ matrix.clang_ver }})
+    - name: Install libc++ (Linux Clang ${{ matrix.clang_ver || '18' }})
       shell: bash
       if: runner.os == 'Linux' && matrix.runs_msan == true
       run: |
-        # sudo apt-get update
-        sudo apt-get install --no-install-recommends libc++-${{ matrix.clang_ver }}-dev libc++abi-${{ matrix.clang_ver }}-dev
+        CLANG_VER="${{ matrix.clang_ver || '18' }}"
+        sudo apt-get install --no-install-recommends \
+          "libc++-${CLANG_VER}-dev" "libc++abi-${CLANG_VER}-dev"
 
     - name: Install valgrind
       shell: bash
