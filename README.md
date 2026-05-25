@@ -1,5 +1,5 @@
 
-<pre>
+
 # Pikmin Swarm
 
 Joc 2D single-player inspirat de managementul unui roi de creaturi (Pikmin-like), implementat în **C++17** cu **SFML 3**. Playerul controlează un lider, iar creaturile pot fi comandate să adune resurse, să lupte cu inamici și să exploreze o lume generată procedural.
@@ -116,4 +116,4 @@ Pot exista depunctări până la 2p pentru diferite aspecte precum:
 În general, acestea sunt prezente în CppCoreGuideline, dar nu e nevoie să parcurgeți documentul, doar să scrieți codul suficient de organizat
 
 folderele build/ și install_dir/ sunt adăugate în fișierul .gitignore deoarece conțin fișiere generate și nu ne ajută să le versionăm.
-</pre>
+
